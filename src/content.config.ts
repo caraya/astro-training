@@ -33,9 +33,39 @@ const idProjects = defineCollection({
   schema: projectSchema,
 });
 
-// Export all three collections explicitly
+// Define an authors collection using a custom API loader
+const authors = defineCollection({
+  loader: {
+    name: 'authors-api-loader',
+    load: async ({ store }) => {
+      // Fetch data from your external REST API
+      const response = await fetch('https://jsonplaceholder.typicode.com/users');
+      const users = await response.json();
+      for (const user of users) {
+        // Save each item to the Astro store using a unique ID
+        store.set({
+          id: user.username.toLowerCase(),
+          data: {
+            name: user.name,
+            email: user.email,
+            website: user.website,
+          },
+        });
+      }
+    }
+  },
+  // Validate the incoming API data to ensure type safety
+  schema: z.object({
+    name: z.string(),
+    email: z.string().email(),
+    website: z.string(),
+  }),
+});
+
+// Export all collections explicitly
 export const collections = {
   'ai-projects': aiProjects,
   'code-projects': codeProjects,
   'id-projects': idProjects,
+  'authors': authors, // Make sure to export the external collection here
 };

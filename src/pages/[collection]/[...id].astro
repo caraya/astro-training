@@ -1,0 +1,142 @@
+---
+import { getCollection, render } from 'astro:content';
+import type { CollectionEntry } from 'astro:content';
+
+type ProjectEntry =
+  | CollectionEntry<'ai-projects'>
+  | CollectionEntry<'code-projects'>
+  | CollectionEntry<'id-projects'>;
+
+export async function getStaticPaths() {
+  const isDev = import.meta.env.DEV;
+  let allProjects: ProjectEntry[] = [];
+  if (isDev) {
+    const [ai, code, id] = await Promise.all([
+      getCollection('ai-projects'),
+      getCollection('code-projects'),
+      getCollection('id-projects'),
+    ]);
+    allProjects = [...ai, ...code, ...id];
+  } else {
+    const results = await Promise.allSettled([
+      getCollection('ai-projects'),
+      getCollection('code-projects'),
+      getCollection('id-projects'),
+    ]);
+    allProjects = results.flatMap((result) =>
+      result.status === 'fulfilled' ? (result.value as ProjectEntry[]) : []
+    );
+  }
+
+  const publicProjects = allProjects.filter((project) => !project.data.draft);
+
+  return publicProjects.map((project) => ({
+    params: {
+      collection: project.collection,
+      id: project.id,
+    },
+    props: { project },
+  }));
+}
+
+interface Props {
+  project: ProjectEntry;
+}
+
+const { project } = Astro.props;
+const { Content } = await render(project);
+const projectDate = project.data.date.toISOString().split('T')[0];
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{project.data.title}</title>
+    <style>
+      :root {
+        --color-bg: #0f172a;
+        --color-card-bg: #1e293b;
+        --color-text: #f8fafc;
+        --color-accent: #38bdf8;
+        --color-muted: #94a3b8;
+      }
+      body {
+        margin: 0;
+        font-family: system-ui, -apple-system, sans-serif;
+        background-color: var(--color-bg);
+        color: var(--color-text);
+        line-height: 1.6;
+        padding: 4rem 1rem;
+      }
+      main {
+        max-width: 800px;
+        margin: 0 auto;
+      }
+      .back-link {
+        color: var(--color-accent);
+        text-decoration: none;
+        display: inline-block;
+        margin-bottom: 2rem;
+        font-weight: 500;
+        transition: transform 0.2s ease;
+      }
+      .back-link:hover {
+        transform: translateX(-4px);
+      }
+      article {
+        background-color: var(--color-card-bg);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        padding: 2.5rem;
+        border-radius: 16px;
+      }
+      h1 {
+        font-size: 3rem;
+        margin: 0 0 1rem 0;
+        line-height: 1.2;
+      }
+      .post-meta {
+        color: var(--color-muted);
+        display: flex;
+        gap: 0.75rem;
+        align-items: center;
+        margin-bottom: 2.5rem;
+        padding-bottom: 1.5rem;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      }
+      .content {
+        font-size: 1.125rem;
+      }
+      .content :global(h2) {
+        color: var(--color-accent);
+        margin-top: 2.5rem;
+      }
+      .content :global(a) {
+        color: var(--color-accent);
+        text-decoration: none;
+      }
+      .content :global(a:hover) {
+        text-decoration: underline;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <a href={`/${project.collection}`} class="back-link">&larr; Back to {project.collection.replace('-', ' ')}</a>
+      <article>
+        <h1>{project.data.title}</h1>
+        <div class="post-meta">
+          <span>By {project.data.author}</span>
+          <span>&bull;</span>
+          <time datetime={projectDate}>
+            {project.data.date.toLocaleDateString("en-US", { dateStyle: "long" })}
+          </time>
+        </div>
+        <div class="content">
+          <Content />
+        </div>
+      </article>
+    </main>
+  </body>
+</html>

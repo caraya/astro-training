@@ -138,5 +138,32 @@ const projectDate = project.data.date.toISOString().split('T')[0];
         </div>
       </article>
     </main>
+
+    <!-- 1. Conditional Diagram Rendering (Mermaid.js) -->
+    {project.data.mermaid && (
+      <script>
+        const renderDiagrams = async () => {
+          const { default: mermaid } = await import("mermaid");
+          mermaid.initialize({ startOnLoad: false, theme: "dark" });
+          await mermaid.run({
+            nodes: document.querySelectorAll(".mermaid-diagram"),
+          });
+        };
+        renderDiagrams();
+      </script>
+    )}
+
+    <!-- 2. Conditional Analytics Rendering (Chart.js) -->
+    {project.data.baseline && (
+      <script>
+        const initCharts = async () => {
+          const { Chart, registerables } = await import("chart.js");
+          Chart.register(...registerables);
+          // Initialize charts...
+        };
+        initCharts();
+      </script>
+    )}
+
   </body>
 </html>

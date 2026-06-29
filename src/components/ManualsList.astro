@@ -1,0 +1,41 @@
+---
+// src/components/ManualsList.astro
+import fs from 'node:fs/promises';
+import path from 'node:path';
+
+const manualsDir = './manuals';
+let manualLinks: Array<{ url: string; title: string }> = [];
+
+try {
+  // Scan the root directory at build time
+  const files = await fs.readdir(manualsDir);
+  
+  manualLinks = files
+    .filter((file) => file.endsWith('.html') || file.endsWith('.pdf'))
+    .map((file) => {
+      const title = path.basename(file, path.extname(file)).replace(/-/g, ' ');
+      return {
+        // Maps exactly to the static copy destination structure
+        url: `/${file}`,
+        title: title.charAt(0).toUpperCase() + title.slice(1)
+      };
+    });
+} catch (error) {
+  console.warn('Manuals directory not found or empty.');
+}
+---
+
+<section>
+  <h2>Legacy Reference Manuals</h2>
+  {manualLinks.length === 0 ? (
+    <p>No manuals available.</p>
+  ) : (
+    <ul>
+      {manualLinks.map((link) => (
+        <li>
+          <a href={link.url}>{link.title}</a>
+        </li>
+      ))}
+    </ul>
+  )}
+</section>
